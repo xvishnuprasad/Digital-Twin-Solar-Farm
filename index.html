@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solar Panel Monitor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #050816;
+      min-height: 100vh;
+      padding: 0;
+      color: #e2e8f0;
+    }
+
+    .navbar {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo {
+      font-size: 40px;
+      filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.5));
+    }
+
+    .brand-text h1 {
+      font-size: 1.5em;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b, #eab308);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+    }
+
+    .brand-text p {
+      color: #64748b;
+      font-size: 0.85em;
+      margin-top: 2px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+    }
+
+    .status-connected {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #86efac;
+    }
+
+    .status-connected .status-dot {
+      background: #22c55e;
+      box-shadow: 0 0 10px #22c55e;
+    }
+
+    .status-disconnected {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .status-disconnected .status-dot {
+      background: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+      margin-bottom: 25px;
+    }
+
+    .card {
+      background: rgba(30, 41, 59, 0.4);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #fbbf24, transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(251, 191, 36, 0.3);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-title {
+      padding: 20px 25px;
+      background: rgba(15, 23, 42, 0.5);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-title-icon {
+      font-size: 24px;
+    }
+
+    .card-title h3 {
+      font-size: 1em;
+      font-weight: 600;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .card-body {
+      padding: 25px;
+    }
+
+    .metric {
+      background: rgba(15, 23, 42, 0.3);
+      padding: 20px;
+      border-radius: 16px;
+      margin-bottom: 15px;
+      border-left: 4px solid;
+      transition: all 0.3s ease;
+    }
+
+    .metric:last-child {
+      margin-bottom: 0;
+    }
+
+    .metric:hover {
+      background: rgba(15, 23, 42, 0.5);
+      transform: translateX(5px);
+    }
+
+    .metric-label {
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+    }
+
+    .metric-value {
+      color: #fbbf24;
+      font-size: 32px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+    }
+
+    .voltage-a { border-left-color: #3b82f6; }
+    .voltage-b { border-left-color: #8b5cf6; }
+    .voltage-c { border-left-color: #ec4899; }
+    .current { border-left-color: #10b981; }
+
+    .status-card {
+      grid-column: span 1;
+    }
+
+    .status-display {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      padding: 25px;
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 16px;
+    }
+
+    .led-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: #fff;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .led-circle::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      padding: 8px;
+      background: linear-gradient(135deg, currentColor 0%, transparent 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0.4;
+    }
+
+    .led-red {
+      background: radial-gradient(circle at 30% 30%, #f87171, #dc2626);
+      box-shadow: 0 0 40px rgba(239, 68, 68, 0.8), inset 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .led-yellow {
+      background: radial-gradient(circle at 30% 30%, #fde047, #f59e0b);
+      box-shadow: 0 0 40px rgba(251, 191, 36, 0.8), inset 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .led-green {
+      background: radial-gradient(circle at 30% 30%, #4ade80, #16a34a);
+      box-shadow: 0 0 40px rgba(34, 197, 94, 0.8), inset 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .led-off {
+      background: radial-gradient(circle at 30% 30%, #475569, #1e293b);
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+      color: #64748b;
+    }
+
+    .status-info h4 {
+      color: #e2e8f0;
+      font-size: 1.1em;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .status-info p {
+      color: #94a3b8;
+      font-size: 0.9em;
+      line-height: 1.5;
+    }
+
+    .status-time {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+      color: #64748b;
+      font-size: 11px;
+      text-align: right;
+      font-style: italic;
+    }
+
+    .config-section {
+      background: rgba(30, 41, 59, 0.4);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      padding: 30px 35px;
+    }
+
+    .config-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      color: #e2e8f0;
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+
+    .config-title span {
+      font-size: 24px;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 16px 20px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 2px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      color: #f1f5f9;
+      font-size: 15px;
+      transition: all 0.3s ease;
+      font-family: 'Courier New', monospace;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #fbbf24;
+      background: rgba(15, 23, 42, 0.7);
+      box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1), 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    .input-group input::placeholder {
+      color: #475569;
+    }
+
+    @media (max-width: 1200px) {
+      .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .navbar {
+        padding: 15px 20px;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .container {
+        padding: 20px;
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .logo {
+        font-size: 32px;
+      }
+
+      .brand-text h1 {
+        font-size: 1.2em;
+      }
+
+      .metric-value {
+        font-size: 28px;
+      }
+
+      .led-circle {
+        width: 70px;
+        height: 70px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="logo">☀️</div>
+      <div class="brand-text">
+        <h1>Solar Panel Monitor</h1>
+        <p>Real-time Energy Monitoring System</p>
+      </div>
+    </div>
+    <div class="status-indicator status-disconnected" id="connectionStatus">
+      <div class="status-dot"></div>
+      <span>Disconnected</span>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dashboard-grid">
+      <!-- Voltage Panels -->
+      <div class="card">
+        <div class="card-title">
+          <span class="card-title-icon">⚡</span>
+          <h3>Panel A</h3>
+        </div>
+        <div class="card-body">
+          <div class="metric voltage-a">
+            <div class="metric-label">Voltage Output</div>
+            <div class="metric-value" id="voltageA">-- V</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span class="card-title-icon">⚡</span>
+          <h3>Panel B</h3>
+        </div>
+        <div class="card-body">
+          <div class="metric voltage-b">
+            <div class="metric-label">Voltage Output</div>
+            <div class="metric-value" id="voltageB">-- V</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span class="card-title-icon">⚡</span>
+          <h3>Panel C</h3>
+        </div>
+        <div class="card-body">
+          <div class="metric voltage-c">
+            <div class="metric-label">Voltage Output</div>
+            <div class="metric-value" id="voltageC">-- V</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Monitor -->
+      <div class="card">
+        <div class="card-title">
+          <span class="card-title-icon">🔋</span>
+          <h3>Current Monitor</h3>
+        </div>
+        <div class="card-body">
+          <div class="metric current">
+            <div class="metric-label">Panel D Current</div>
+            <div class="metric-value" id="currentD">-- A</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Cards -->
+      <div class="card status-card">
+        <div class="card-title">
+          <span class="card-title-icon">🚦</span>
+          <h3>Panels A+B Status</h3>
+        </div>
+        <div class="card-body">
+          <div class="status-display">
+            <div class="led-circle led-off" id="ledAB">OFF</div>
+            <div class="status-info">
+              <h4>Combined Status</h4>
+              <p id="statusABText">Waiting for data...</p>
+            </div>
+          </div>
+          <div class="status-time" id="lastUpdateAB">Last update: --</div>
+        </div>
+      </div>
+
+      <div class="card status-card">
+        <div class="card-title">
+          <span class="card-title-icon">🚦</span>
+          <h3>Panel C Status</h3>
+        </div>
+        <div class="card-body">
+          <div class="status-display">
+            <div class="led-circle led-off" id="ledC">OFF</div>
+            <div class="status-info">
+              <h4>Panel Status</h4>
+              <p id="statusCText">Waiting for data...</p>
+            </div>
+          </div>
+          <div class="status-time" id="lastUpdateC">Last update: --</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Configuration -->
+    <div class="config-section">
+      <div class="config-title">
+        <span>⚙️</span>
+        <span>ESP32 Configuration</span>
+      </div>
+      <div class="input-group">
+        <input type="text" id="espIP" placeholder="10.170.37.63" value="">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let espIP = '192.168.1.100';
+    let updateInterval;
+
+    const savedIP = localStorage.getItem('espIP');
+    if (savedIP) {
+      espIP = savedIP;
+      document.getElementById('espIP').value = espIP;
+    }
+
+    document.getElementById('espIP').addEventListener('change', (e) => {
+      espIP = e.target.value;
+      localStorage.setItem('espIP', espIP);
+      updateConnectionStatus(false);
+      fetchData();
+    });
+
+    function updateConnectionStatus(connected) {
+      const statusEl = document.getElementById('connectionStatus');
+      if (connected) {
+        statusEl.className = 'status-indicator status-connected';
+        statusEl.innerHTML = '<div class="status-dot"></div><span>Connected</span>';
+      } else {
+        statusEl.className = 'status-indicator status-disconnected';
+        statusEl.innerHTML = '<div class="status-dot"></div><span>Disconnected</span>';
+      }
+    }
+
+    function updateLEDDisplay(elementId, status) {
+      const ledEl = document.getElementById(elementId);
+      ledEl.className = 'led-circle';
+      
+      if (status.includes('RED')) {
+        ledEl.classList.add('led-red');
+        ledEl.textContent = 'RED';
+      } else if (status.includes('YELLOW')) {
+        ledEl.classList.add('led-yellow');
+        ledEl.textContent = 'YELLOW';
+      } else if (status.includes('GREEN')) {
+        ledEl.classList.add('led-green');
+        ledEl.textContent = 'GREEN';
+      } else {
+        ledEl.classList.add('led-off');
+        ledEl.textContent = 'OFF';
+      }
+    }
+
+    async function fetchData() {
+      try {
+        const response = await fetch(`http://${espIP}/api`);
+        
+        if (!response.ok) throw new Error('Network response failed');
+        
+        const data = await response.json();
+        
+        document.getElementById('voltageA').textContent = data.PanelA_Voltage.toFixed(2) + ' V';
+        document.getElementById('voltageB').textContent = data.PanelB_Voltage.toFixed(2) + ' V';
+        document.getElementById('voltageC').textContent = data.PanelC_Voltage.toFixed(2) + ' V';
+        document.getElementById('currentD').textContent = data.PanelD_Current.toFixed(2) + ' A';
+        
+        updateLEDDisplay('ledAB', data.Status_PanelAB);
+        updateLEDDisplay('ledC', data.Status_PanelC);
+        
+        document.getElementById('statusABText').textContent = data.Status_PanelAB;
+        document.getElementById('statusCText').textContent = data.Status_PanelC;
+        
+        const now = new Date().toLocaleTimeString();
+        document.getElementById('lastUpdateAB').textContent = `Last update: ${now}`;
+        document.getElementById('lastUpdateC').textContent = `Last update: ${now}`;
+        
+        updateConnectionStatus(true);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        updateConnectionStatus(false);
+      }
+    }
+
+    fetchData();
+    updateInterval = setInterval(fetchData, 2000);
+  </script>
+</body>
+</html>
