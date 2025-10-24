@@ -4,9 +4,9 @@
  * LED: AB combined, C only
  ***************************************************/
 
-#define BLYNK_TEMPLATE_ID "TMPL3hJPtb9R2"
+#define BLYNK_TEMPLATE_ID ""
 #define BLYNK_TEMPLATE_NAME "Solar Farm"
-#define BLYNK_AUTH_TOKEN "hfdA6XvZxLWpyA5xq9bR7IdGfyfWirPk"
+#define BLYNK_AUTH_TOKEN ""
 
 #include <WiFi.h>
 #include <WebServer.h>
@@ -144,3 +144,4 @@ void loop(){
   timer.run();
   server.handleClient();
 }
+
