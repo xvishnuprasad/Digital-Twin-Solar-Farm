@@ -504,20 +504,20 @@
         <span>ESP32 Configuration</span>
       </div>
       <div class="input-group">
-        <input type="text" id="espIP" placeholder="10.170.37.63" value="">
+        <input type="text" id="espIP" placeholder="127.0.0.1:8080" value="127.0.0.1:8080">
       </div>
     </div>
   </div>
 
   <script>
-    let espIP = '192.168.1.100';
+    let espIP = '127.0.0.1:8080';
     let updateInterval;
 
     const savedIP = localStorage.getItem('espIP');
     if (savedIP) {
       espIP = savedIP;
-      document.getElementById('espIP').value = espIP;
     }
+    document.getElementById('espIP').value = espIP;
 
     document.getElementById('espIP').addEventListener('change', (e) => {
       espIP = e.target.value;
@@ -556,13 +556,23 @@
       }
     }
 
+    // Abort requests that take longer than this, so a hung ESP32 shows "Disconnected".
+    // Kept below the 2 s poll interval so requests never pile up.
+    const FETCH_TIMEOUT_MS = 1500;
+    const REQUIRED_KEYS = ['PanelA_Voltage', 'PanelB_Voltage', 'PanelC_Voltage',
+                           'PanelD_Current', 'Status_PanelAB', 'Status_PanelC'];
+
     async function fetchData() {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
       try {
-        const response = await fetch(`http://${espIP}/api`);
+        const response = await fetch(`http://${espIP}/api`, { signal: controller.signal, cache: 'no-store' });
         
         if (!response.ok) throw new Error('Network response failed');
         
         const data = await response.json();
+        const missing = REQUIRED_KEYS.filter((k) => !(k in data));
+        if (missing.length) throw new Error('Invalid payload, missing: ' + missing.join(', '));
         
         document.getElementById('voltageA').textContent = data.PanelA_Voltage.toFixed(2) + ' V';
         document.getElementById('voltageB').textContent = data.PanelB_Voltage.toFixed(2) + ' V';
@@ -581,8 +591,10 @@
         
         updateConnectionStatus(true);
       } catch (error) {
-        console.error('Fetch error:', error);
+        console.error('Fetch error:', error.name === 'AbortError' ? `timed out after ${FETCH_TIMEOUT_MS} ms` : error);
         updateConnectionStatus(false);
+      } finally {
+        clearTimeout(timeout);
       }
     }
 

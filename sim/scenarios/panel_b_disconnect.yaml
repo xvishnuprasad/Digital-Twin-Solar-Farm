@@ -1,0 +1,7 @@
+name: panel_b_disconnect
+description: Panel B drops out after 60 s; the AB average (~3.2 V) only shows YELLOW (finding F3).
+start: 2020-05-15T12:00:00
+duration_s: 3600
+weather: {cloud_model: clear, irradiance_override: 900, ambient_min_c: 25, ambient_max_c: 25}
+faults:
+  - {kind: disconnect, target: B, start_s: 60}

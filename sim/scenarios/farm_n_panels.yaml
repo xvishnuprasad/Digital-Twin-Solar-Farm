@@ -1,0 +1,10 @@
+name: farm_n_panels
+description: 16-panel farm for /api/v2 with mixed shading on P3 and P7 and P12 offline.
+start: 2020-05-15T11:00:00
+duration_s: 7200
+weather: {cloud_model: markov, mean_cloud_cover: 0.3}
+farm: {n_panels: 16}
+faults:
+  - {kind: shading, target: P3, value: 0.5}
+  - {kind: shading, target: P7, value: 0.99}
+  - {kind: disconnect, target: P12}

@@ -1,0 +1,345 @@
+{
+  "README.md": {
+    "mtime": 1795674710.1883109,
+    "seen": 1795674754.836427,
+    "ast_hash": "f577185113754f903ae5ef0f9cd9b7c1",
+    "semantic_hash": ""
+  },
+  "index.html": {
+    "mtime": 1795674000.609761,
+    "seen": 1795674754.836437,
+    "ast_hash": "9dddcc73f89ec635efe3d772669367f2",
+    "semantic_hash": ""
+  },
+  "Solar_Farm.ino": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836262,
+    "ast_hash": "6b033e0eb00a6155ebc8d5dc61036432",
+    "semantic_hash": "",
+    "language": "language=.cpp"
+  },
+  ".claude/settings.json": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8362482,
+    "ast_hash": "6bf1b9010c634cda5d9943783fbc49e9",
+    "semantic_hash": ""
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836255,
+    "ast_hash": "453bbb4b802860b89fbb2eb40b6b37ab",
+    "semantic_hash": ""
+  },
+  "pyproject.toml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836266,
+    "ast_hash": "eb37d89655c1f649cab0cf8d6672063f",
+    "semantic_hash": ""
+  },
+  "sim/__init__.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836274,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "sim/__main__.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836277,
+    "ast_hash": "43b608d4be276b7a2c58518ab9513c35",
+    "semantic_hash": ""
+  },
+  "sim/adc.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.83628,
+    "ast_hash": "e7a82bd3ceac9756d54d51a27f026ba1",
+    "semantic_hash": ""
+  },
+  "sim/blynk_mock.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836283,
+    "ast_hash": "97851866b4939f288ae883b8efa29b33",
+    "semantic_hash": ""
+  },
+  "sim/config.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836287,
+    "ast_hash": "8d21cc1da0e7342aecfd881555b87c60",
+    "semantic_hash": ""
+  },
+  "sim/conftest_helpers.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8362901,
+    "ast_hash": "f2f8ef7a35095b0dfd11a76fc9a8f3c8",
+    "semantic_hash": ""
+  },
+  "sim/contracts/__init__.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8362932,
+    "ast_hash": "486f6be41d094877fc933eae650e634c",
+    "semantic_hash": ""
+  },
+  "sim/contracts/api_v1.schema.json": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8362958,
+    "ast_hash": "9c0905b12df3d6429b8cf44d45eda7b3",
+    "semantic_hash": ""
+  },
+  "sim/contracts/api_v2.schema.json": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8363001,
+    "ast_hash": "7ec0aeb4a00f2d4e57feeaa944f0db80",
+    "semantic_hash": ""
+  },
+  "sim/datasets.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836303,
+    "ast_hash": "97d817e11ad1b48e9cec5ac63608dd50",
+    "semantic_hash": ""
+  },
+  "sim/emulator.py": {
+    "mtime": 1795674010.1122158,
+    "seen": 1795674754.8363059,
+    "ast_hash": "1c96e203e6a8d337d6073d0f42eb9843",
+    "semantic_hash": ""
+  },
+  "sim/engine.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836309,
+    "ast_hash": "4b45ff9eed8062892781609874b02fc1",
+    "semantic_hash": ""
+  },
+  "sim/fil/__init__.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836313,
+    "ast_hash": "5a92a81121c083094f630df7e5d32105",
+    "semantic_hash": ""
+  },
+  "sim/fil/include/Arduino.h": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8363159,
+    "ast_hash": "ae549f4571c339cb3d17d832bea348fc",
+    "semantic_hash": ""
+  },
+  "sim/fil/include/BlynkSimpleEsp32.h": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836319,
+    "ast_hash": "e900c96e24a96967a5d6e0a367129e2d",
+    "semantic_hash": ""
+  },
+  "sim/fil/include/WebServer.h": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836323,
+    "ast_hash": "68fe3479c648da05755857003ca62357",
+    "semantic_hash": ""
+  },
+  "sim/fil/include/WiFi.h": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836326,
+    "ast_hash": "979722872c3ba5595fcd602bc7940ad1",
+    "semantic_hash": ""
+  },
+  "sim/fil/main.cpp": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836333,
+    "ast_hash": "7b70e0860d2893a9c8d1fb184cb970ca",
+    "semantic_hash": ""
+  },
+  "sim/fil/shim.cpp": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8363361,
+    "ast_hash": "d7bead43fed374ecc6fa64e2b36e2a54",
+    "semantic_hash": ""
+  },
+  "sim/firmware_model.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836339,
+    "ast_hash": "934647043a6b9a2803f7d760cd989051",
+    "semantic_hash": ""
+  },
+  "sim/physics.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836343,
+    "ast_hash": "42ecdea245f61f7ab7696ef2c5d444f3",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/clear_day.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8363461,
+    "ast_hash": "f64a1364430be9e5bd0f69922eb3630d",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/cloudy_day.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836349,
+    "ast_hash": "f63c5cac8e3a37598fdf1bf9a5427fc9",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/esp32_adc_physical.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836353,
+    "ast_hash": "1f37505d89c00ae40328fc70db2af5f4",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/farm_n_panels.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8363562,
+    "ast_hash": "beaca86a5551fcf5872d77f2e1cfd8c7",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/lab_bench.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836359,
+    "ast_hash": "b2d8f0e2756bdc91707f326b92a3bf78",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/network_flaky.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836362,
+    "ast_hash": "3f996b76c9eb9fd34850f908b7b6fe25",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/night.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836365,
+    "ast_hash": "3e4bc86691c8a2423ddee33edeac3d60",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/panel_b_disconnect.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8363688,
+    "ast_hash": "647f9395ba052108c53ecaef125f353e",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/sensor_faults.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836372,
+    "ast_hash": "049744ee9205401346af5b8f1681c82a",
+    "semantic_hash": ""
+  },
+  "sim/scenarios/shading_and_degradation.yaml": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836375,
+    "ast_hash": "15b52ddf0d93bccf9ac7054c70be3ffd",
+    "semantic_hash": ""
+  },
+  "sim/tests/conftest.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836378,
+    "ast_hash": "dff2431fcb3b90896257d8d993dd5f91",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_control_panel.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836382,
+    "ast_hash": "664fcdb5ccc138b91f66843cab19dae8",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_datasets.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836385,
+    "ast_hash": "d1114a5d269643f3124d9b1ee2680f35",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_emulator.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836388,
+    "ast_hash": "10b0f283cc9758af7b1f845075e79ff0",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_engine.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836392,
+    "ast_hash": "6e6b711ccc2ac6c3160f14968b69c56e",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_esp32_compile.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836395,
+    "ast_hash": "6beb7db1308a0f792d575450ea6c6ec6",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_fil.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8363981,
+    "ast_hash": "7990b3d5bf8851b77a48cf55c07f641a",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_firmware_model.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836401,
+    "ast_hash": "cff59c39405244f58ba8ef11cef49819",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_notebook.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836404,
+    "ast_hash": "89cbe929d8bee1942f97b4a776c75500",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_physics_adc.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836407,
+    "ast_hash": "7a3594f24cbb6b29f4ef0187ffcb01bd",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_ue_contract.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8364139,
+    "ast_hash": "1ae7f94212228a043ce3c03806495ac0",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_webui.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836417,
+    "ast_hash": "7dfac05af5716b9eeb45b5a1a04a9ce1",
+    "semantic_hash": ""
+  },
+  "sim/ue_poller.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836421,
+    "ast_hash": "c011a4e8bf5c01e907608482205c6778",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8364239,
+    "ast_hash": "e8c9371afb3c20e32ea6c62d54c38a93",
+    "semantic_hash": ""
+  },
+  "docs/SIMULATION_HARNESS.md": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.83643,
+    "ast_hash": "826259f6776bdc22bd0a4ee0edd31e1f",
+    "semantic_hash": ""
+  },
+  "docs/SIMULATOR_PLAN.md": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.836433,
+    "ast_hash": "c82f8c13b7f6f3220707afc8e2baf1a9",
+    "semantic_hash": ""
+  },
+  "sim/static/control.html": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.83644,
+    "ast_hash": "7064ef33b1d664120aa2a32aa022faf9",
+    "semantic_hash": ""
+  },
+  "secrets.example.h": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.83627,
+    "ast_hash": "8caf9c7f5abb4bffb49bb72d3bccd5bf",
+    "semantic_hash": ""
+  },
+  "sim/fil/include/secrets.h": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.83633,
+    "ast_hash": "083d338f392c62d4a3d8b1a779ce95ed",
+    "semantic_hash": ""
+  },
+  "sim/tests/test_secrets.py": {
+    "mtime": 1795394511.0,
+    "seen": 1795674754.8364108,
+    "ast_hash": "e83d72956ea2594c972aa953f46f7fbe",
+    "semantic_hash": ""
+  }
+}

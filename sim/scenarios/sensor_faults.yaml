@@ -1,0 +1,9 @@
+name: sensor_faults
+description: Noisy voltage sensor A, stuck ADC on C, saturated current channel D.
+start: 2020-05-15T12:00:00
+duration_s: 3600
+weather: {cloud_model: clear}
+faults:
+  - {kind: sensor_noise, target: A, value: 0.4}
+  - {kind: sensor_stuck, target: C, start_s: 600, value: 1200}
+  - {kind: adc_saturation, target: D, start_s: 1200, end_s: 1800}

@@ -1,302 +1,181 @@
-================================================================================
-  DIGITAL TWIN SOLAR FARM — PERFORMANCE LOG
-  Project: Digital Twin Renewable Energy Solar Farm
-  Author:  Vishnu
-  Date:    2026-11-21
-================================================================================
-
-================================================================================
- 1. HARDWARE PERFORMANCE BENCHMARKS
-================================================================================
-
-──────────────────────────────────────────────────────────────────────────────────
- 1.1  ESP32 Microcontroller
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Processor                      Xtensa LX6 Dual-Core   240 MHz clock speed
-  SRAM (Total)                   520 KB                  Shared between cores
-  Free Heap at Runtime           ~180–220 KB             After Wi-Fi + Blynk init
-  Flash Memory                   4 MB                    SPI Flash
-  Firmware Binary Size           ~750 KB                 Compiled .bin
-  Boot Time                      ~1.5 s                  Power-on to setup() entry
-  Wi-Fi Connection Time          ~2–5 s                  DHCP acquisition included
-  Blynk Handshake Time           ~1–3 s                  After Wi-Fi connected
-  Total Startup Time             ~5–10 s                 Power-on to full operation
-  Operating Voltage              3.3 V                   On-board regulator from 5V USB
-  Current Consumption (Active)   ~80–160 mA              Wi-Fi TX active
-  Current Consumption (Idle)     ~20–30 mA               Wi-Fi connected, idle loop
-
-──────────────────────────────────────────────────────────────────────────────────
- 1.2  ADC (Analog-to-Digital Converter)
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Resolution                     12-bit                  4096 discrete levels
-  Input Voltage Range            0–3.3 V                 (Attenuated by default)
-  Voltage Measurement Range      0–10.0 V                Post voltage-divider scaling
-  Voltage Step Resolution        0.00244 V               10.0 V / 4095
-  Current Measurement Range      0–13.5 A                ACS712 theoretical max (5A model)
-  Current Step Resolution        0.0066 A                (1.22 mV ADC step) / 0.185 mV/A
-  Sampling Time per Channel      ~10 µs                  SAR ADC conversion
-  Channels Used                  4                       GPIO 34, 35, 32, 33
-  Total ADC Sampling Overhead    ~40 µs                  4 channels per cycle
-  ADC Nonlinearity (ESP32)       ±6 LSB typical          Espressif datasheet spec
-
-──────────────────────────────────────────────────────────────────────────────────
- 1.3  Sensor Performance — Voltage Dividers
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Input Range                    0–10.0 V                Designed for 6.9V panels
-  Output Range                   0–3.3 V                 Scaled for ESP32 ADC
-  Division Ratio                 ~3.03:1                 10V → 3.3V
-  Accuracy                       ±1–2%                   Depends on resistor tolerance
-  Response Time                  Instantaneous            Passive resistive network
-  Operating Temperature          -40°C to +85°C          Standard resistor rating
-
-──────────────────────────────────────────────────────────────────────────────────
- 1.4  Sensor Performance — ACS712 Current Sensor
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Model                          ACS712-05B              5 A bi-directional
-  Sensitivity                    185 mV/A                At 5V supply
-  Zero-Current Output            2.5 V                   VCC/2 offset
-  Measurement Range              -5 A to +5 A            Bi-directional (negative clamped in firmware)
-  Bandwidth                      80 kHz                  -3 dB point
-  Response Time                  5 µs                    Rise time
-  Total Output Error             ±1.5%                   At 25°C, TA specified
-  Operating Temperature          -40°C to +85°C          Full accuracy range
-  Noise Floor                    ~21 mV (peak-to-peak)   Typical at 5A model
-
-──────────────────────────────────────────────────────────────────────────────────
- 1.5  Solar Panel Specifications
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Rated Voltage (Voc)            6.9 V per panel         Open-circuit voltage
-  Number of Panels               4                       Panels A, B, C, D
-  Group AB Configuration         Parallel                Combined voltage monitoring
-  Group CD Configuration         Series                  Current flow monitoring
-  Parallel Voltage (AB)          ~6.9 V                  Same as individual (parallel)
-  Series Voltage (CD)            ~13.8 V                 Sum of panel voltages
-
-──────────────────────────────────────────────────────────────────────────────────
- 1.6  LED Indicator Performance
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  LED Count                      6 total                 2 groups × 3 colors
-  LED Type                       5 mm through-hole       Standard indicator LEDs
-  Forward Voltage (Red)          ~1.8–2.2 V              Typical
-  Forward Voltage (Yellow)       ~2.0–2.4 V              Typical
-  Forward Voltage (Green)        ~2.0–3.0 V              Typical
-  Current per LED                ~10–20 mA               With current-limiting resistor
-  GPIO Response Time             < 1 µs                  Digital write latency
-  State Update Latency           < 2000 ms               Tied to sendData() interval
-
-================================================================================
- 2. SOFTWARE / FIRMWARE PERFORMANCE
-================================================================================
-
-──────────────────────────────────────────────────────────────────────────────────
- 2.1  Firmware Execution Timing
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Main Loop Cycle Time           < 1 ms                  Blynk.run() + timer.run() + server.handleClient()
-  sendData() Execution Time      ~2–5 ms                 4× analogRead + 6× Blynk.virtualWrite + LED update
-  handleAPI() Execution Time     ~1–3 ms                 4× analogRead + JSON string build + HTTP send
-  BlynkTimer Interval            2000 ms                 Non-blocking timer
-  Timer Jitter                   ±5 ms                   Typical at low CPU load
-  Serial Print Overhead          ~0.5 ms                 Single printf at 115200 baud
-  State Classification Time      < 0.01 ms               Simple threshold comparisons
-
-──────────────────────────────────────────────────────────────────────────────────
- 2.2  Network & Communication Performance
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Wi-Fi Standard                 802.11 b/g/n            2.4 GHz only
-  Wi-Fi TX Power                 Up to 20 dBm            ~100 mW
-  Typical Wi-Fi Range            10–30 m (indoor)        Depends on environment
-  RSSI (Typical Indoor)          -30 to -70 dBm          Good to moderate signal
-  REST API Response Size         ~180–220 bytes          JSON payload
-  REST API Latency (LAN)         5–15 ms                 Request to response (same network)
-  REST API Throughput             ~100–200 req/s         Theoretical max (single core)
-  Concurrent HTTP Clients        4–8                     ESP32 WebServer socket limit
-  Blynk Protocol                 TCP with TLS            Persistent connection
-  Blynk Push Latency             50–200 ms               Server-dependent
-  Blynk Reconnect Time           2–5 s                   On connection drop
-
-──────────────────────────────────────────────────────────────────────────────────
- 2.3  Web UI Performance (index.html)
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  HTML File Size                  ~16 KB                  Single-file SPA (no deps)
-  DOM Nodes                       ~80–100                Lightweight structure
-  CSS Animations                  3 active               Pulse dot, card hover, gradient
-  JavaScript Engine               Vanilla JS             Zero framework overhead
-  Polling Interval                2000 ms                setInterval(fetchData, 2000)
-  Fetch Timeout                   Browser default        ~30 s before error
-  DOM Update Time                 < 2 ms                 Targeted element updates
-  First Contentful Paint          < 200 ms               Static HTML, no network deps
-  LocalStorage Read/Write         < 1 ms                 Single key (espIP)
-  Memory Footprint (Browser)     ~5–10 MB                Tab memory usage
-
-──────────────────────────────────────────────────────────────────────────────────
- 2.4  Unreal Engine 3D Digital Twin Performance
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Engine Version                 UE4 / UE5               Project-dependent
-  Target Frame Rate              30–60 FPS               Dependent on hardware
-  HTTP Polling Interval          1000–5000 ms            Configurable in Blueprint
-  JSON Parse Time                < 1 ms                  Small payload
-  Material Parameter Update      < 0.1 ms per panel      Dynamic material instance
-  3D Scene Complexity            Low-Medium               4 panel actors + terrain + sky
-  Draw Calls (Estimated)         50–150                   Basic solar farm scene
-  VRAM Usage (Estimated)         200–500 MB               Textures + materials
-  Network Thread Overhead        Minimal                  Async HTTP module
-  Build Lighting Time            Variable                 Pre-computed or dynamic
-
-──────────────────────────────────────────────────────────────────────────────────
- 2.5  Machine Learning Pipeline Performance
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Notebook Runtime               Python 3.x / Jupyter   Google Colab compatible
-  Dataset Size                   ~35,000+ rows           Plant generation data
-  Feature Count                  6 input features        DC_POWER, DAILY_YIELD, TOTAL_YIELD (×2 sources)
-  Train/Test Split               80% / 20%               random_state=21
-  Model Type                     Linear Regression       sklearn.linear_model
-  Training Time                  < 1 s                   Simple LR on tabular data
-  Inference Time                 < 0.01 ms/sample        Single predict() call
-  R² Score                       High (>95% typical)     On test set
-  Libraries Used                 pandas, numpy, sklearn  seaborn, matplotlib for viz
-
-================================================================================
- 3. STORAGE PERFORMANCE
-================================================================================
-
-──────────────────────────────────────────────────────────────────────────────────
- 3.1  Edge Storage (ESP32)
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  SRAM Total                     520 KB                  Volatile runtime memory
-  SRAM Available (Runtime)       180–220 KB              After Wi-Fi + Blynk + WebServer
-  Flash Total                    4 MB                    SPI Flash (NOR)
-  Flash Read Speed               ~40 MB/s                Quad SPI mode
-  Flash Write Endurance          ~100,000 cycles         Per sector
-  Firmware Partition              ~1.3 MB                Default partition scheme
-
-──────────────────────────────────────────────────────────────────────────────────
- 3.2  Cloud Storage (Blynk IoT)
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Datastreams                    6 (V0–V5)               3 voltage + 1 current + 2 status
-  Data Write Rate                0.5 Hz per pin          1 write / 2000 ms
-  Total Write Rate               3 writes/s              6 pins × 0.5 Hz
-  History Retention (Free)       ~1 month                Blynk Free tier
-  History Retention (Pro)        ~1 year                 Blynk Pro tier
-  API Rate Limit                 Varies by plan          Typically 10–100 req/min
-
-──────────────────────────────────────────────────────────────────────────────────
- 3.3  Client Storage (Browser)
-──────────────────────────────────────────────────────────────────────────────────
-
-  Parameter                      Value                   Notes
-  ─────────────────────────────  ──────────────────────  ──────────────────────────
-  Storage API                    localStorage            Synchronous, key-value
-  Keys Stored                    1                       espIP
-  Data Size                      ~20–50 bytes            IP string + key overhead
-  Persistence                    Per-origin, indefinite  Until manual clear
-  Read/Write Latency             < 1 ms                  Synchronous API
-
-================================================================================
- 4. REAL-TIME PERFORMANCE SUMMARY
-================================================================================
-
-  ┌─────────────────────────────────────────────────────────────────────────────┐
-  │                      END-TO-END LATENCY BREAKDOWN                         │
-  ├───────────────────────────────────┬─────────────────────────────────────────┤
-  │  Stage                           │  Latency                               │
-  ├───────────────────────────────────┼─────────────────────────────────────────┤
-  │  Solar Panel → ADC Read          │  ~10 µs per channel (40 µs total)      │
-  │  ADC → Calibration               │  < 0.01 ms                             │
-  │  Calibration → State Decision    │  < 0.01 ms                             │
-  │  State → GPIO LED Write          │  < 1 µs per pin                        │
-  │  State → Serial Print            │  ~0.5 ms                               │
-  │  State → Blynk VirtualWrite      │  ~50–200 ms (network round-trip)       │
-  │  State → REST JSON Response      │  ~5–15 ms (LAN request-response)       │
-  │  Web UI DOM Update               │  < 2 ms                                │
-  │  Unreal Engine Material Update   │  < 0.1 ms                              │
-  ├───────────────────────────────────┼─────────────────────────────────────────┤
-  │  TOTAL (Sensor → Physical LED)   │  < 1 ms                                │
-  │  TOTAL (Sensor → Web UI)         │  ~2007–2020 ms (inc. polling wait)     │
-  │  TOTAL (Sensor → Blynk Cloud)    │  ~2050–2200 ms (inc. timer + network)  │
-  │  TOTAL (Sensor → UE 3D Twin)     │  ~1005–5020 ms (inc. UE poll interval) │
-  └───────────────────────────────────┴─────────────────────────────────────────┘
-
-================================================================================
- 5. SYSTEM RELIABILITY & FAULT TOLERANCE
-================================================================================
-
-  ┌─────────────────────────────────────────────────────────────────────────────┐
-  │  Scenario                        │  Behavior                              │
-  ├───────────────────────────────────┼─────────────────────────────────────────┤
-  │  Wi-Fi Disconnected              │  LEDs still update locally. Web API    │
-  │                                  │  unavailable. Blynk reconnects auto.   │
-  │  Blynk Server Down               │  Local REST API + LEDs unaffected.     │
-  │                                  │  Cloud dashboard offline.              │
-  │  Web UI Browser Closed           │  No impact. ESP32 continues all ops.   │
-  │  Unreal Engine Closed            │  No impact. All other outputs active.  │
-  │  Sensor Disconnected             │  ADC reads ~0 → RED: No Voltage state. │
-  │  Power Loss                      │  Full restart required (~5–10 s).      │
-  │  Multiple API Clients            │  4–8 concurrent supported. Beyond      │
-  │                                  │  limit, connections queued/dropped.    │
-  └───────────────────────────────────┴─────────────────────────────────────────┘
-
-================================================================================
- 6. PERFORMANCE OPTIMIZATION NOTES
-================================================================================
-
-  [OPT-001] ADC Averaging: Consider multi-sample averaging (e.g., 10 reads per
-            channel) to reduce noise. Adds ~100 µs per channel but improves
-            measurement stability by ~60%.
-
-  [OPT-002] JSON Buffer: Pre-allocate a fixed char buffer (~256 bytes) instead
-            of Arduino String concatenation to avoid heap fragmentation.
-
-  [OPT-003] CORS Headers: Add Access-Control-Allow-Origin to handleAPI() to
-            allow cross-origin requests from the Web UI without proxy.
-
-  [OPT-004] UE Polling: Use WebSocket upgrade instead of HTTP polling to reduce
-            latency from ~1–5 s to ~50–100 ms for real-time 3D updates.
-
-  [OPT-005] OTA Updates: Enable ArduinoOTA for wireless firmware updates,
-            eliminating the need for USB connection during development.
-
-  [OPT-006] Deep Sleep: If battery-powered, implement ESP32 deep sleep between
-            measurement cycles to reduce average power to ~10 µA.
-
-================================================================================
-  END OF PERFORMANCE LOG
-================================================================================
+2026-11-26 12:13:48,507 - INFO - Simulation server active on http://127.0.0.1:8080 (PID: 1057, scenario: clear_day, backend: python)
+2026-11-26 12:13:48,508 - INFO - Loaded physics engine (pvlib clear-sky irradiance, 4-panel IV model)
+2026-11-26 12:13:48,508 - INFO - Loaded virtual ADC & ESP32 firmware model (GPIO 34, 35, 32, 33)
+2026-11-26 12:13:48,508 - INFO - REST API (/api, /api/v2, /state) and Control Panel (/control) ready
+2026-11-26 12:13:48,508 - INFO - Starting 180s (3 min) continuous performance logging session
+2026-11-26 12:13:48,552 - INFO - Telemetry connected: AB=RED: No Voltage, C=GREEN: Normal
+2026-11-26 12:13:48,552 - INFO - Tick 001 processed in 44.63 ms (Rate: 22.40 Hz), CPU: 0.0%, Memory: 59.48 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:49,590 - INFO - Tick 002 processed in 36.27 ms (Rate: 27.57 Hz), CPU: 0.1%, Memory: 58.11 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:50,633 - INFO - Tick 003 processed in 38.12 ms (Rate: 26.23 Hz), CPU: 0.2%, Memory: 61.84 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:51,659 - INFO - Tick 004 processed in 21.17 ms (Rate: 47.23 Hz), CPU: 0.9%, Memory: 60.11 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:52,699 - INFO - Tick 005 processed in 37.37 ms (Rate: 26.76 Hz), CPU: 0.8%, Memory: 58.89 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:53,739 - INFO - Tick 006 processed in 34.74 ms (Rate: 28.79 Hz), CPU: 0.7%, Memory: 51.20 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:54,774 - INFO - Tick 007 processed in 30.60 ms (Rate: 32.68 Hz), CPU: 1.0%, Memory: 60.64 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:55,815 - INFO - Tick 008 processed in 35.08 ms (Rate: 28.51 Hz), CPU: 0.5%, Memory: 60.75 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:56,856 - INFO - Tick 009 processed in 36.08 ms (Rate: 27.72 Hz), CPU: 0.6%, Memory: 57.34 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:57,893 - INFO - Tick 010 processed in 34.61 ms (Rate: 28.89 Hz), CPU: 0.4%, Memory: 57.48 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:58,929 - INFO - Tick 011 processed in 32.58 ms (Rate: 30.69 Hz), CPU: 0.6%, Memory: 61.28 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:13:59,957 - INFO - Tick 012 processed in 23.61 ms (Rate: 42.35 Hz), CPU: 0.4%, Memory: 61.23 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:14:00,999 - INFO - Tick 013 processed in 36.67 ms (Rate: 27.27 Hz), CPU: 1.0%, Memory: 61.28 MB | VA=5.70V VB=5.42V VC=5.87V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:02,021 - INFO - Tick 014 processed in 17.11 ms (Rate: 58.44 Hz), CPU: 0.3%, Memory: 61.25 MB | VA=5.70V VB=5.42V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:03,053 - INFO - Tick 015 processed in 26.66 ms (Rate: 37.51 Hz), CPU: 0.8%, Memory: 66.08 MB | VA=5.70V VB=5.42V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:04,096 - INFO - Tick 016 processed in 38.22 ms (Rate: 26.16 Hz), CPU: 0.5%, Memory: 66.08 MB | VA=5.70V VB=5.42V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:05,138 - INFO - Tick 017 processed in 36.89 ms (Rate: 27.11 Hz), CPU: 0.7%, Memory: 66.52 MB | VA=5.70V VB=5.42V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:06,175 - INFO - Tick 018 processed in 34.30 ms (Rate: 29.16 Hz), CPU: 1.4%, Memory: 68.00 MB | VA=5.70V VB=5.42V VC=5.79V ID=0.06A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:07,216 - INFO - Tick 019 processed in 36.31 ms (Rate: 27.54 Hz), CPU: 1.1%, Memory: 69.84 MB | VA=5.70V VB=5.42V VC=5.79V ID=0.06A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:08,248 - INFO - Tick 020 processed in 32.16 ms (Rate: 31.09 Hz), CPU: 0.7%, Memory: 69.73 MB | VA=5.70V VB=5.42V VC=5.79V ID=0.06A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:09,286 - INFO - Tick 021 processed in 32.82 ms (Rate: 30.47 Hz), CPU: 0.5%, Memory: 69.75 MB | VA=5.70V VB=5.42V VC=5.79V ID=0.06A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:10,320 - INFO - Tick 022 processed in 28.33 ms (Rate: 35.30 Hz), CPU: 1.0%, Memory: 69.73 MB | VA=5.70V VB=5.42V VC=4.73V ID=0.01A AB=GREEN: Normal C=YELLOW: Low Voltage
+2026-11-26 12:14:11,365 - INFO - Tick 023 processed in 40.19 ms (Rate: 24.88 Hz), CPU: 0.5%, Memory: 70.66 MB | VA=5.70V VB=5.42V VC=4.73V ID=0.01A AB=GREEN: Normal C=YELLOW: Low Voltage
+2026-11-26 12:14:12,399 - INFO - Tick 024 processed in 32.53 ms (Rate: 30.74 Hz), CPU: 0.5%, Memory: 70.67 MB | VA=5.70V VB=5.42V VC=4.73V ID=0.01A AB=GREEN: Normal C=YELLOW: Low Voltage
+2026-11-26 12:14:13,444 - INFO - Tick 025 processed in 39.76 ms (Rate: 25.15 Hz), CPU: 0.8%, Memory: 70.50 MB | VA=5.70V VB=5.42V VC=4.73V ID=0.00A AB=GREEN: Normal C=YELLOW: Low Voltage
+2026-11-26 12:14:14,486 - INFO - Tick 026 processed in 37.38 ms (Rate: 26.75 Hz), CPU: 0.5%, Memory: 70.48 MB | VA=5.70V VB=5.42V VC=4.73V ID=0.00A AB=GREEN: Normal C=YELLOW: Low Voltage
+2026-11-26 12:14:15,529 - INFO - Tick 027 processed in 40.40 ms (Rate: 24.75 Hz), CPU: 0.5%, Memory: 71.30 MB | VA=5.70V VB=5.43V VC=4.73V ID=0.00A AB=GREEN: Normal C=YELLOW: Low Voltage
+2026-11-26 12:14:16,571 - INFO - Tick 028 processed in 36.20 ms (Rate: 27.62 Hz), CPU: 1.0%, Memory: 71.30 MB | VA=5.70V VB=5.43V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:17,596 - INFO - Tick 029 processed in 19.78 ms (Rate: 50.56 Hz), CPU: 1.2%, Memory: 71.70 MB | VA=5.88V VB=5.88V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:18,644 - INFO - Tick 030 processed in 42.79 ms (Rate: 23.37 Hz), CPU: 0.6%, Memory: 71.73 MB | VA=5.88V VB=5.88V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:19,676 - INFO - Tick 031 processed in 31.57 ms (Rate: 31.68 Hz), CPU: 0.6%, Memory: 71.77 MB | VA=5.88V VB=5.88V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:20,719 - INFO - Tick 032 processed in 38.75 ms (Rate: 25.81 Hz), CPU: 1.3%, Memory: 71.78 MB | VA=5.88V VB=5.88V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:21,760 - INFO - Tick 033 processed in 36.56 ms (Rate: 27.35 Hz), CPU: 1.2%, Memory: 71.94 MB | VA=5.70V VB=5.43V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:22,800 - INFO - Tick 034 processed in 36.37 ms (Rate: 27.50 Hz), CPU: 0.4%, Memory: 71.95 MB | VA=5.70V VB=5.43V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:23,844 - INFO - Tick 035 processed in 38.09 ms (Rate: 26.25 Hz), CPU: 2.0%, Memory: 72.05 MB | VA=5.70V VB=5.43V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:24,883 - INFO - Tick 036 processed in 35.08 ms (Rate: 28.51 Hz), CPU: 0.7%, Memory: 72.05 MB | VA=5.70V VB=5.43V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:25,910 - INFO - Tick 037 processed in 26.25 ms (Rate: 38.09 Hz), CPU: 1.0%, Memory: 72.05 MB | VA=5.70V VB=5.43V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:26,953 - INFO - Tick 038 processed in 39.43 ms (Rate: 25.36 Hz), CPU: 0.4%, Memory: 69.83 MB | VA=5.70V VB=5.43V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:27,989 - INFO - Tick 039 processed in 35.43 ms (Rate: 28.23 Hz), CPU: 0.4%, Memory: 69.67 MB | VA=5.70V VB=5.43V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:29,024 - INFO - Tick 040 processed in 31.25 ms (Rate: 32.00 Hz), CPU: 0.4%, Memory: 66.16 MB | VA=5.70V VB=5.43V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:30,057 - INFO - Tick 041 processed in 32.03 ms (Rate: 31.22 Hz), CPU: 1.1%, Memory: 66.14 MB | VA=5.44V VB=0.00V VC=0.00V ID=0.00A AB=YELLOW: Low Voltage C=RED: No Voltage
+2026-11-26 12:14:31,095 - INFO - Tick 042 processed in 32.44 ms (Rate: 30.82 Hz), CPU: 0.9%, Memory: 69.78 MB | VA=5.44V VB=0.00V VC=0.00V ID=0.00A AB=YELLOW: Low Voltage C=RED: No Voltage
+2026-11-26 12:14:32,145 - INFO - Tick 043 processed in 44.56 ms (Rate: 22.44 Hz), CPU: 1.1%, Memory: 69.80 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:14:33,187 - INFO - Tick 044 processed in 37.05 ms (Rate: 26.99 Hz), CPU: 0.5%, Memory: 69.80 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:14:34,233 - INFO - Tick 045 processed in 41.28 ms (Rate: 24.23 Hz), CPU: 0.4%, Memory: 69.81 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:14:35,274 - INFO - Tick 046 processed in 35.64 ms (Rate: 28.06 Hz), CPU: 1.0%, Memory: 69.83 MB | VA=5.88V VB=5.88V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:36,320 - INFO - Tick 047 processed in 40.62 ms (Rate: 24.62 Hz), CPU: 0.4%, Memory: 69.86 MB | VA=5.88V VB=5.88V VC=5.88V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:37,353 - INFO - Tick 048 processed in 32.62 ms (Rate: 30.65 Hz), CPU: 1.3%, Memory: 70.11 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:14:38,398 - INFO - Tick 049 processed in 39.98 ms (Rate: 25.01 Hz), CPU: 0.4%, Memory: 70.09 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:14:39,435 - INFO - Tick 050 processed in 33.37 ms (Rate: 29.97 Hz), CPU: 1.2%, Memory: 70.12 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:14:40,473 - INFO - Tick 051 processed in 32.55 ms (Rate: 30.72 Hz), CPU: 0.4%, Memory: 70.16 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:14:41,510 - INFO - Tick 052 processed in 35.71 ms (Rate: 28.00 Hz), CPU: 0.7%, Memory: 70.55 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:14:42,546 - INFO - Tick 053 processed in 31.04 ms (Rate: 32.22 Hz), CPU: 0.6%, Memory: 70.55 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:14:43,590 - INFO - Tick 054 processed in 39.49 ms (Rate: 25.32 Hz), CPU: 0.7%, Memory: 66.55 MB | VA=5.44V VB=5.43V VC=5.74V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:44,629 - INFO - Tick 055 processed in 33.75 ms (Rate: 29.63 Hz), CPU: 0.6%, Memory: 66.55 MB | VA=5.44V VB=5.43V VC=5.74V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:45,689 - INFO - Tick 056 processed in 54.15 ms (Rate: 18.47 Hz), CPU: 0.5%, Memory: 66.59 MB | VA=5.44V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:46,728 - INFO - Tick 057 processed in 35.15 ms (Rate: 28.45 Hz), CPU: 0.9%, Memory: 66.69 MB | VA=5.44V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:47,754 - INFO - Tick 058 processed in 20.78 ms (Rate: 48.12 Hz), CPU: 0.2%, Memory: 66.42 MB | VA=5.44V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:48,794 - INFO - Tick 059 processed in 35.56 ms (Rate: 28.12 Hz), CPU: 0.6%, Memory: 66.09 MB | VA=5.44V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:49,837 - INFO - Tick 060 processed in 36.86 ms (Rate: 27.13 Hz), CPU: 0.6%, Memory: 66.09 MB | VA=5.45V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:50,877 - INFO - Tick 061 processed in 35.44 ms (Rate: 28.21 Hz), CPU: 0.4%, Memory: 66.11 MB | VA=5.45V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:51,920 - INFO - Tick 062 processed in 37.87 ms (Rate: 26.41 Hz), CPU: 0.5%, Memory: 66.09 MB | VA=5.45V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:52,961 - INFO - Tick 063 processed in 35.53 ms (Rate: 28.15 Hz), CPU: 0.6%, Memory: 65.09 MB | VA=5.45V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:54,003 - INFO - Tick 064 processed in 36.72 ms (Rate: 27.24 Hz), CPU: 0.6%, Memory: 65.09 MB | VA=5.45V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:55,049 - INFO - Tick 065 processed in 41.15 ms (Rate: 24.30 Hz), CPU: 0.7%, Memory: 64.25 MB | VA=5.45V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:56,089 - INFO - Tick 066 processed in 34.70 ms (Rate: 28.82 Hz), CPU: 0.4%, Memory: 64.12 MB | VA=5.45V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:57,133 - INFO - Tick 067 processed in 38.80 ms (Rate: 25.77 Hz), CPU: 0.6%, Memory: 64.12 MB | VA=5.45V VB=5.43V VC=5.74V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:58,173 - INFO - Tick 068 processed in 34.70 ms (Rate: 28.82 Hz), CPU: 0.9%, Memory: 64.14 MB | VA=5.45V VB=5.43V VC=5.76V ID=0.23A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:14:59,219 - INFO - Tick 069 processed in 44.44 ms (Rate: 22.50 Hz), CPU: 1.3%, Memory: 64.14 MB | VA=5.42V VB=5.46V VC=5.76V ID=0.17A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:00,259 - INFO - Tick 070 processed in 34.97 ms (Rate: 28.60 Hz), CPU: 0.5%, Memory: 64.14 MB | VA=5.44V VB=5.43V VC=5.71V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:01,296 - INFO - Tick 071 processed in 35.27 ms (Rate: 28.35 Hz), CPU: 0.5%, Memory: 64.14 MB | VA=5.45V VB=5.42V VC=5.74V ID=0.05A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:02,335 - INFO - Tick 072 processed in 33.13 ms (Rate: 30.19 Hz), CPU: 0.7%, Memory: 64.05 MB | VA=5.45V VB=5.43V VC=5.75V ID=0.21A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:03,375 - INFO - Tick 073 processed in 36.00 ms (Rate: 27.78 Hz), CPU: 0.4%, Memory: 64.08 MB | VA=5.47V VB=5.46V VC=5.74V ID=0.06A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:04,418 - INFO - Tick 074 processed in 37.06 ms (Rate: 26.98 Hz), CPU: 0.5%, Memory: 64.08 MB | VA=5.43V VB=5.44V VC=5.74V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:05,455 - INFO - Tick 075 processed in 36.55 ms (Rate: 27.36 Hz), CPU: 1.5%, Memory: 65.75 MB | VA=5.46V VB=5.47V VC=5.77V ID=0.14A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:06,499 - INFO - Tick 076 processed in 38.75 ms (Rate: 25.81 Hz), CPU: 0.4%, Memory: 65.75 MB | VA=5.45V VB=5.42V VC=5.73V ID=0.11A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:07,537 - INFO - Tick 077 processed in 33.83 ms (Rate: 29.56 Hz), CPU: 0.4%, Memory: 65.78 MB | VA=5.47V VB=5.43V VC=5.75V ID=0.14A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:08,580 - INFO - Tick 078 processed in 37.82 ms (Rate: 26.44 Hz), CPU: 0.5%, Memory: 65.78 MB | VA=5.42V VB=5.44V VC=5.76V ID=0.10A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:09,621 - INFO - Tick 079 processed in 35.98 ms (Rate: 27.80 Hz), CPU: 0.4%, Memory: 65.78 MB | VA=5.47V VB=5.44V VC=5.73V ID=0.19A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:10,668 - INFO - Tick 080 processed in 41.21 ms (Rate: 24.27 Hz), CPU: 0.8%, Memory: 68.11 MB | VA=5.44V VB=5.41V VC=5.74V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:11,701 - INFO - Tick 081 processed in 28.07 ms (Rate: 35.62 Hz), CPU: 0.7%, Memory: 68.19 MB | VA=5.47V VB=5.41V VC=5.76V ID=0.15A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:12,742 - INFO - Tick 082 processed in 36.17 ms (Rate: 27.65 Hz), CPU: 1.0%, Memory: 68.19 MB | VA=5.46V VB=5.41V VC=5.38V ID=0.10A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:13,771 - INFO - Tick 083 processed in 26.93 ms (Rate: 37.13 Hz), CPU: 0.3%, Memory: 68.19 MB | VA=5.47V VB=5.43V VC=5.37V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:14,803 - INFO - Tick 084 processed in 28.26 ms (Rate: 35.38 Hz), CPU: 1.1%, Memory: 71.91 MB | VA=5.46V VB=5.44V VC=5.39V ID=0.03A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:15,843 - INFO - Tick 085 processed in 34.92 ms (Rate: 28.64 Hz), CPU: 0.5%, Memory: 71.91 MB | VA=5.45V VB=5.44V VC=5.37V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:16,883 - INFO - Tick 086 processed in 34.85 ms (Rate: 28.69 Hz), CPU: 1.0%, Memory: 71.58 MB | VA=5.45V VB=5.41V VC=5.39V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:17,927 - INFO - Tick 087 processed in 39.43 ms (Rate: 25.36 Hz), CPU: 0.8%, Memory: 71.58 MB | VA=5.43V VB=5.45V VC=5.37V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:18,971 - INFO - Tick 088 processed in 38.08 ms (Rate: 26.26 Hz), CPU: 1.7%, Memory: 76.80 MB | VA=5.44V VB=5.48V VC=5.36V ID=0.06A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:20,013 - INFO - Tick 089 processed in 38.87 ms (Rate: 25.73 Hz), CPU: 0.4%, Memory: 76.80 MB | VA=5.47V VB=5.43V VC=5.40V ID=0.05A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:21,050 - INFO - Tick 090 processed in 33.48 ms (Rate: 29.87 Hz), CPU: 0.9%, Memory: 76.80 MB | VA=5.47V VB=5.47V VC=5.82V ID=0.13A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:22,090 - INFO - Tick 091 processed in 38.16 ms (Rate: 26.21 Hz), CPU: 0.7%, Memory: 76.80 MB | VA=5.46V VB=5.45V VC=5.86V ID=0.18A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:23,131 - INFO - Tick 092 processed in 35.50 ms (Rate: 28.17 Hz), CPU: 0.5%, Memory: 79.67 MB | VA=5.46V VB=5.43V VC=5.87V ID=0.18A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:24,171 - INFO - Tick 093 processed in 34.74 ms (Rate: 28.79 Hz), CPU: 0.4%, Memory: 79.67 MB | VA=5.44V VB=5.44V VC=5.81V ID=0.09A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:25,207 - INFO - Tick 094 processed in 32.82 ms (Rate: 30.47 Hz), CPU: 0.9%, Memory: 79.36 MB | VA=0.01V VB=4.00V VC=5.89V ID=0.20A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:15:26,255 - INFO - Tick 095 processed in 42.52 ms (Rate: 23.52 Hz), CPU: 0.6%, Memory: 79.34 MB | VA=0.00V VB=4.01V VC=5.88V ID=0.25A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:15:27,300 - INFO - Tick 096 processed in 39.83 ms (Rate: 25.11 Hz), CPU: 1.2%, Memory: 79.78 MB | VA=0.03V VB=4.01V VC=5.85V ID=0.14A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:15:28,328 - INFO - Tick 097 processed in 22.56 ms (Rate: 44.33 Hz), CPU: 0.4%, Memory: 79.78 MB | VA=0.01V VB=4.02V VC=5.87V ID=0.16A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:15:29,373 - INFO - Tick 098 processed in 40.51 ms (Rate: 24.68 Hz), CPU: 0.5%, Memory: 79.78 MB | VA=0.00V VB=4.00V VC=5.86V ID=0.19A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:15:30,414 - INFO - Tick 099 processed in 35.34 ms (Rate: 28.30 Hz), CPU: 0.9%, Memory: 79.78 MB | VA=0.02V VB=0.00V VC=5.85V ID=0.13A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:15:31,456 - INFO - Tick 100 processed in 36.94 ms (Rate: 27.07 Hz), CPU: 0.7%, Memory: 79.89 MB | VA=0.00V VB=0.00V VC=5.87V ID=0.14A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:15:32,498 - INFO - Tick 101 processed in 36.40 ms (Rate: 27.47 Hz), CPU: 1.0%, Memory: 79.81 MB | VA=0.01V VB=0.00V VC=5.85V ID=0.15A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:15:33,541 - INFO - Tick 102 processed in 37.81 ms (Rate: 26.44 Hz), CPU: 0.7%, Memory: 79.84 MB | VA=0.00V VB=0.00V VC=5.90V ID=0.17A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:15:34,584 - INFO - Tick 103 processed in 37.50 ms (Rate: 26.67 Hz), CPU: 0.4%, Memory: 79.84 MB | VA=0.00V VB=0.01V VC=5.88V ID=0.12A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:15:35,618 - INFO - Tick 104 processed in 31.35 ms (Rate: 31.90 Hz), CPU: 0.6%, Memory: 79.88 MB | VA=0.00V VB=0.00V VC=5.89V ID=0.16A AB=RED: No Voltage C=GREEN: Normal
+2026-11-26 12:15:36,659 - INFO - Tick 105 processed in 35.51 ms (Rate: 28.16 Hz), CPU: 1.0%, Memory: 79.89 MB | VA=0.00V VB=5.35V VC=5.87V ID=0.08A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:15:37,690 - INFO - Tick 106 processed in 31.00 ms (Rate: 32.25 Hz), CPU: 0.5%, Memory: 79.89 MB | VA=0.00V VB=5.34V VC=5.87V ID=0.15A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:15:38,738 - INFO - Tick 107 processed in 42.86 ms (Rate: 23.33 Hz), CPU: 1.0%, Memory: 79.89 MB | VA=0.00V VB=5.32V VC=5.87V ID=0.09A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:15:39,780 - INFO - Tick 108 processed in 39.68 ms (Rate: 25.20 Hz), CPU: 0.5%, Memory: 79.89 MB | VA=0.00V VB=5.31V VC=5.85V ID=0.19A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:15:40,817 - INFO - Tick 109 processed in 32.72 ms (Rate: 30.56 Hz), CPU: 0.9%, Memory: 79.89 MB | VA=5.88V VB=5.86V VC=5.86V ID=0.17A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:41,859 - INFO - Tick 110 processed in 36.39 ms (Rate: 27.48 Hz), CPU: 0.4%, Memory: 79.89 MB | VA=5.87V VB=5.90V VC=5.90V ID=0.16A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:42,902 - INFO - Tick 111 processed in 37.64 ms (Rate: 26.57 Hz), CPU: 0.4%, Memory: 79.89 MB | VA=5.90V VB=5.88V VC=5.88V ID=0.25A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:43,943 - INFO - Tick 112 processed in 35.46 ms (Rate: 28.20 Hz), CPU: 0.5%, Memory: 79.89 MB | VA=5.87V VB=5.85V VC=5.89V ID=0.10A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:44,978 - INFO - Tick 113 processed in 32.31 ms (Rate: 30.95 Hz), CPU: 0.4%, Memory: 79.89 MB | VA=5.89V VB=5.88V VC=5.85V ID=0.15A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:46,019 - INFO - Tick 114 processed in 36.00 ms (Rate: 27.78 Hz), CPU: 1.1%, Memory: 79.91 MB | VA=5.91V VB=5.90V VC=0.00V ID=0.05A AB=GREEN: Normal C=RED: No Voltage
+2026-11-26 12:15:47,060 - INFO - Tick 115 processed in 35.64 ms (Rate: 28.06 Hz), CPU: 0.7%, Memory: 80.06 MB | VA=5.88V VB=5.88V VC=0.02V ID=0.00A AB=GREEN: Normal C=RED: No Voltage
+2026-11-26 12:15:48,101 - INFO - Tick 116 processed in 36.36 ms (Rate: 27.50 Hz), CPU: 0.5%, Memory: 80.06 MB | VA=5.88V VB=5.87V VC=0.00V ID=0.07A AB=GREEN: Normal C=RED: No Voltage
+2026-11-26 12:15:49,136 - INFO - Tick 117 processed in 30.01 ms (Rate: 33.32 Hz), CPU: 0.5%, Memory: 80.06 MB | VA=5.88V VB=5.87V VC=0.00V ID=0.00A AB=GREEN: Normal C=RED: No Voltage
+2026-11-26 12:15:50,181 - INFO - Tick 118 processed in 40.16 ms (Rate: 24.90 Hz), CPU: 1.1%, Memory: 80.08 MB | VA=0.01V VB=0.01V VC=0.02V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:15:51,221 - INFO - Tick 119 processed in 35.12 ms (Rate: 28.47 Hz), CPU: 0.6%, Memory: 80.08 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.06A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:15:52,266 - INFO - Tick 120 processed in 39.78 ms (Rate: 25.14 Hz), CPU: 0.6%, Memory: 80.08 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.02A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:15:53,313 - INFO - Tick 121 processed in 41.71 ms (Rate: 23.98 Hz), CPU: 0.6%, Memory: 80.08 MB | VA=0.00V VB=0.00V VC=0.00V ID=0.05A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:15:54,352 - INFO - Tick 122 processed in 37.34 ms (Rate: 26.78 Hz), CPU: 0.6%, Memory: 79.94 MB | VA=0.00V VB=0.01V VC=0.00V ID=0.02A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:15:55,385 - INFO - Tick 123 processed in 28.08 ms (Rate: 35.62 Hz), CPU: 0.5%, Memory: 79.62 MB | VA=0.00V VB=0.00V VC=0.02V ID=0.00A AB=RED: No Voltage C=RED: No Voltage
+2026-11-26 12:15:56,427 - INFO - Tick 124 processed in 36.13 ms (Rate: 27.68 Hz), CPU: 0.8%, Memory: 79.67 MB | VA=5.90V VB=5.90V VC=5.91V ID=0.10A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:57,466 - INFO - Tick 125 processed in 33.74 ms (Rate: 29.64 Hz), CPU: 1.1%, Memory: 80.00 MB | VA=5.89V VB=5.90V VC=5.91V ID=0.20A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:58,504 - INFO - Tick 126 processed in 35.16 ms (Rate: 28.44 Hz), CPU: 0.4%, Memory: 79.97 MB | VA=5.94V VB=5.92V VC=5.89V ID=0.20A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:15:59,543 - INFO - Tick 127 processed in 34.24 ms (Rate: 29.20 Hz), CPU: 0.8%, Memory: 80.03 MB | VA=5.87V VB=5.90V VC=5.90V ID=0.14A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:00,578 - INFO - Tick 128 processed in 33.69 ms (Rate: 29.68 Hz), CPU: 0.5%, Memory: 80.02 MB | VA=5.91V VB=5.89V VC=5.90V ID=0.20A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:01,624 - INFO - Tick 129 processed in 40.47 ms (Rate: 24.71 Hz), CPU: 0.5%, Memory: 80.05 MB | VA=5.89V VB=5.88V VC=5.88V ID=0.22A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:02,665 - INFO - Tick 130 processed in 35.31 ms (Rate: 28.32 Hz), CPU: 0.6%, Memory: 79.89 MB | VA=5.92V VB=5.89V VC=5.93V ID=0.15A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:03,710 - INFO - Tick 131 processed in 40.37 ms (Rate: 24.77 Hz), CPU: 1.1%, Memory: 79.92 MB | VA=5.86V VB=5.89V VC=5.89V ID=0.17A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:04,744 - INFO - Tick 132 processed in 31.55 ms (Rate: 31.70 Hz), CPU: 0.5%, Memory: 79.89 MB | VA=5.89V VB=5.89V VC=5.92V ID=0.21A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:05,790 - INFO - Tick 133 processed in 40.88 ms (Rate: 24.46 Hz), CPU: 0.6%, Memory: 79.86 MB | VA=5.93V VB=5.91V VC=5.90V ID=0.17A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:06,837 - INFO - Tick 134 processed in 42.27 ms (Rate: 23.66 Hz), CPU: 0.4%, Memory: 79.88 MB | VA=5.88V VB=5.87V VC=5.89V ID=0.13A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:07,872 - INFO - Tick 135 processed in 30.09 ms (Rate: 33.23 Hz), CPU: 0.4%, Memory: 79.91 MB | VA=5.87V VB=5.90V VC=5.90V ID=0.23A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:08,901 - INFO - Tick 136 processed in 27.02 ms (Rate: 37.02 Hz), CPU: 0.3%, Memory: 79.73 MB | VA=5.90V VB=5.90V VC=5.89V ID=0.15A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:09,943 - INFO - Tick 137 processed in 35.81 ms (Rate: 27.93 Hz), CPU: 0.6%, Memory: 79.73 MB | VA=5.89V VB=5.90V VC=5.90V ID=0.14A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:10,982 - INFO - Tick 138 processed in 34.45 ms (Rate: 29.03 Hz), CPU: 0.6%, Memory: 79.77 MB | VA=5.90V VB=5.90V VC=5.88V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:12,022 - INFO - Tick 139 processed in 35.96 ms (Rate: 27.81 Hz), CPU: 0.5%, Memory: 79.84 MB | VA=5.89V VB=5.89V VC=5.92V ID=0.13A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:13,067 - INFO - Tick 140 processed in 39.66 ms (Rate: 25.21 Hz), CPU: 0.4%, Memory: 79.84 MB | VA=5.91V VB=5.89V VC=5.90V ID=0.02A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:14,104 - INFO - Tick 141 processed in 32.12 ms (Rate: 31.13 Hz), CPU: 0.5%, Memory: 79.84 MB | VA=5.91V VB=5.89V VC=5.90V ID=0.19A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:15,154 - INFO - Tick 142 processed in 44.90 ms (Rate: 22.27 Hz), CPU: 1.2%, Memory: 79.97 MB | VA=5.77V VB=5.19V VC=5.81V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:16,196 - INFO - Tick 143 processed in 36.93 ms (Rate: 27.08 Hz), CPU: 0.6%, Memory: 79.97 MB | VA=5.79V VB=5.21V VC=5.80V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:17,232 - INFO - Tick 144 processed in 30.35 ms (Rate: 32.95 Hz), CPU: 0.6%, Memory: 79.97 MB | VA=5.78V VB=5.19V VC=5.78V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:18,272 - INFO - Tick 145 processed in 35.06 ms (Rate: 28.52 Hz), CPU: 0.4%, Memory: 79.98 MB | VA=5.79V VB=5.21V VC=5.79V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:19,316 - INFO - Tick 146 processed in 38.88 ms (Rate: 25.72 Hz), CPU: 0.7%, Memory: 78.86 MB | VA=5.79V VB=5.18V VC=5.79V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:20,363 - INFO - Tick 147 processed in 41.82 ms (Rate: 23.91 Hz), CPU: 0.6%, Memory: 78.86 MB | VA=5.79V VB=5.19V VC=5.78V ID=0.03A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:21,404 - INFO - Tick 148 processed in 35.39 ms (Rate: 28.25 Hz), CPU: 0.6%, Memory: 78.86 MB | VA=5.78V VB=5.20V VC=5.77V ID=0.06A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:22,455 - INFO - Tick 149 processed in 46.19 ms (Rate: 21.65 Hz), CPU: 0.5%, Memory: 78.88 MB | VA=5.77V VB=5.18V VC=5.79V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:23,491 - INFO - Tick 150 processed in 34.55 ms (Rate: 28.95 Hz), CPU: 0.6%, Memory: 78.89 MB | VA=5.79V VB=5.21V VC=5.78V ID=0.02A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:24,531 - INFO - Tick 151 processed in 39.69 ms (Rate: 25.19 Hz), CPU: 0.4%, Memory: 78.89 MB | VA=5.76V VB=5.19V VC=5.79V ID=0.08A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:25,565 - INFO - Tick 152 processed in 30.68 ms (Rate: 32.60 Hz), CPU: 0.4%, Memory: 76.53 MB | VA=5.74V VB=5.20V VC=5.79V ID=0.09A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:26,610 - INFO - Tick 153 processed in 40.67 ms (Rate: 24.59 Hz), CPU: 0.5%, Memory: 76.58 MB | VA=5.78V VB=5.20V VC=5.79V ID=0.02A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:27,648 - INFO - Tick 154 processed in 33.53 ms (Rate: 29.82 Hz), CPU: 0.5%, Memory: 76.58 MB | VA=5.77V VB=5.22V VC=5.81V ID=0.04A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:28,686 - INFO - Tick 155 processed in 35.71 ms (Rate: 28.00 Hz), CPU: 0.3%, Memory: 76.58 MB | VA=5.79V VB=5.21V VC=5.81V ID=0.08A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:29,727 - INFO - Tick 156 processed in 35.95 ms (Rate: 27.82 Hz), CPU: 1.5%, Memory: 76.59 MB | VA=4.96V VB=5.85V VC=5.12V ID=0.02A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:30,756 - INFO - Tick 157 processed in 28.01 ms (Rate: 35.70 Hz), CPU: 0.6%, Memory: 79.23 MB | VA=4.95V VB=5.83V VC=5.13V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:31,798 - INFO - Tick 158 processed in 37.09 ms (Rate: 26.96 Hz), CPU: 0.5%, Memory: 79.22 MB | VA=5.00V VB=5.86V VC=5.11V ID=0.08A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:32,839 - INFO - Tick 159 processed in 35.60 ms (Rate: 28.09 Hz), CPU: 0.5%, Memory: 78.67 MB | VA=4.97V VB=5.88V VC=5.09V ID=0.12A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:33,888 - INFO - Tick 160 processed in 43.72 ms (Rate: 22.87 Hz), CPU: 0.4%, Memory: 78.67 MB | VA=4.95V VB=5.85V VC=5.09V ID=0.04A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:34,930 - INFO - Tick 161 processed in 36.54 ms (Rate: 27.37 Hz), CPU: 0.7%, Memory: 79.44 MB | VA=4.95V VB=5.85V VC=5.10V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:35,967 - INFO - Tick 162 processed in 32.30 ms (Rate: 30.96 Hz), CPU: 0.3%, Memory: 79.44 MB | VA=4.97V VB=5.88V VC=5.11V ID=0.04A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:37,007 - INFO - Tick 163 processed in 34.39 ms (Rate: 29.08 Hz), CPU: 1.1%, Memory: 79.62 MB | VA=4.03V VB=4.69V VC=4.91V ID=0.02A AB=YELLOW: Low Voltage C=YELLOW: Low Voltage
+2026-11-26 12:16:38,052 - INFO - Tick 164 processed in 39.75 ms (Rate: 25.16 Hz), CPU: 0.7%, Memory: 79.62 MB | VA=4.02V VB=4.71V VC=4.86V ID=0.00A AB=YELLOW: Low Voltage C=YELLOW: Low Voltage
+2026-11-26 12:16:39,094 - INFO - Tick 165 processed in 36.85 ms (Rate: 27.14 Hz), CPU: 0.7%, Memory: 79.66 MB | VA=4.01V VB=4.69V VC=4.87V ID=0.06A AB=YELLOW: Low Voltage C=YELLOW: Low Voltage
+2026-11-26 12:16:40,124 - INFO - Tick 166 processed in 28.65 ms (Rate: 34.91 Hz), CPU: 2.2%, Memory: 89.61 MB | VA=4.02V VB=4.69V VC=4.91V ID=0.00A AB=YELLOW: Low Voltage C=YELLOW: Low Voltage
+2026-11-26 12:16:41,166 - INFO - Tick 167 processed in 37.13 ms (Rate: 26.93 Hz), CPU: 1.3%, Memory: 89.67 MB | VA=4.03V VB=4.70V VC=4.87V ID=0.02A AB=YELLOW: Low Voltage C=YELLOW: Low Voltage
+2026-11-26 12:16:42,206 - INFO - Tick 168 processed in 35.15 ms (Rate: 28.45 Hz), CPU: 2.0%, Memory: 89.67 MB | VA=4.04V VB=4.73V VC=5.89V ID=0.03A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:16:43,243 - INFO - Tick 169 processed in 35.78 ms (Rate: 27.95 Hz), CPU: 1.9%, Memory: 90.52 MB | VA=4.02V VB=4.69V VC=5.90V ID=0.08A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:16:44,286 - INFO - Tick 170 processed in 37.87 ms (Rate: 26.41 Hz), CPU: 1.4%, Memory: 90.53 MB | VA=4.03V VB=4.68V VC=5.89V ID=0.02A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:16:45,329 - INFO - Tick 171 processed in 40.78 ms (Rate: 24.52 Hz), CPU: 1.0%, Memory: 90.89 MB | VA=4.05V VB=4.70V VC=5.90V ID=0.03A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:16:46,366 - INFO - Tick 172 processed in 31.28 ms (Rate: 31.97 Hz), CPU: 0.4%, Memory: 90.88 MB | VA=4.03V VB=4.70V VC=5.92V ID=0.00A AB=YELLOW: Low Voltage C=GREEN: Normal
+2026-11-26 12:16:47,396 - INFO - Tick 173 processed in 24.75 ms (Rate: 40.40 Hz), CPU: 1.2%, Memory: 90.88 MB | VA=5.68V VB=4.67V VC=5.90V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:48,434 - INFO - Tick 174 processed in 32.67 ms (Rate: 30.61 Hz), CPU: 0.5%, Memory: 90.88 MB | VA=5.65V VB=4.69V VC=5.89V ID=0.00A AB=GREEN: Normal C=GREEN: Normal
+2026-11-26 12:16:49,435 - INFO - 3-minute performance logging session completed (174 ticks recorded)

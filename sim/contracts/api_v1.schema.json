@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "solar-twin/api/v1",
+  "title": "ESP32 GET /api response (Solar_Farm.ino)",
+  "description": "Telemetry contract consumed by index.html and the Unreal Engine twin. Voltages in V, current in A, two decimals.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["PanelA_Voltage", "PanelB_Voltage", "PanelC_Voltage", "PanelD_Current", "Status_PanelAB", "Status_PanelC"],
+  "properties": {
+    "PanelA_Voltage": {"type": "number", "minimum": 0, "maximum": 10},
+    "PanelB_Voltage": {"type": "number", "minimum": 0, "maximum": 10},
+    "PanelC_Voltage": {"type": "number", "minimum": 0, "maximum": 10},
+    "PanelD_Current": {"type": "number", "minimum": 0, "maximum": 13.52},
+    "Status_PanelAB": {"$ref": "#/$defs/status"},
+    "Status_PanelC": {"$ref": "#/$defs/status"}
+  },
+  "$defs": {
+    "status": {"enum": ["RED: No Voltage", "YELLOW: Low Voltage", "GREEN: Normal"]}
+  }
+}

@@ -1,0 +1,7 @@
+name: esp32_adc_physical
+description: Physically faithful ESP32 ADC (3.3 V full scale, knee, saturation) to expose calibration error (F4).
+start: 2020-05-15T12:00:00
+duration_s: 3600
+weather: {cloud_model: clear}
+adc_model: esp32
+acs_divider: true

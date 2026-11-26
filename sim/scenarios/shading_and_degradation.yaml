@@ -1,0 +1,8 @@
+name: shading_and_degradation
+description: Panel C 95% shaded from 10:00-10:30, panel A degraded 30% all day.
+start: 2020-05-15T09:30:00
+duration_s: 7200
+weather: {cloud_model: clear}
+faults:
+  - {kind: shading, target: C, start_s: 1800, end_s: 3600, value: 0.95}
+  - {kind: degradation, target: A, value: 0.3}

@@ -1,0 +1,6 @@
+name: network_flaky
+description: Nominal physics behind a slow link (800 ms latency) for consumer timeout testing.
+start: 2020-05-15T12:00:00
+duration_s: 3600
+weather: {cloud_model: clear}
+network: {mode: latency, latency_ms: 800}

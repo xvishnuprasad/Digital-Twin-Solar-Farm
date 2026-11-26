@@ -4,17 +4,18 @@
  * LED: AB combined, C only
  ***************************************************/
 
-#define BLYNK_TEMPLATE_ID ""
-#define BLYNK_TEMPLATE_NAME "Solar Farm"
-#define BLYNK_AUTH_TOKEN ""
+// Credentials live in secrets.h (gitignored). Copy secrets.example.h to secrets.h
+// next to this sketch and fill in your own values. It must define BLYNK_TEMPLATE_ID,
+// BLYNK_TEMPLATE_NAME and BLYNK_AUTH_TOKEN before BlynkSimpleEsp32.h is included.
+#include "secrets.h"
 
 #include <WiFi.h>
 #include <WebServer.h>
 #include <BlynkSimpleEsp32.h>
 
 // Wi-Fi
-char ssid[] = "Vishnu's24";
-char pass[] = "223334444";
+char ssid[] = WIFI_SSID;
+char pass[] = WIFI_PASS;
 
 // Pins
 #define VOLTAGE_A 34
@@ -33,6 +34,12 @@ char pass[] = "223334444";
 BlynkTimer timer;
 WebServer server(80);
 
+// Connectivity (F5): never block boot on Wi-Fi or Blynk.
+#define WIFI_CONNECT_TIMEOUT_MS 15000UL
+#define WIFI_RETRY_INTERVAL_MS  10000UL
+#define BLYNK_CONNECT_TIMEOUT_MS 5000UL
+unsigned long lastWifiRetry = 0;
+
 // ---------------- Voltage & Current Reading ----------------
 float readVoltage(int pin) {
   int raw = analogRead(pin);
@@ -46,6 +53,14 @@ float readCurrent(int pin) {
   float current = (voltage - 2.5) / 0.185; // ACS712 5A
   if(current < 0) current = 0; // ignore small negatives
   return current;
+}
+
+// ---------------- Classification ----------------
+// Same thresholds as the LEDs: <= 1.0 V RED, < 5.0 V YELLOW, otherwise GREEN.
+String classifyVoltage(float v) {
+  if(v <= 1.0) return "RED: No Voltage";
+  if(v < 5.0) return "YELLOW: Low Voltage";
+  return "GREEN: Normal";
 }
 
 // ---------------- LED Control ----------------
@@ -105,15 +120,23 @@ void handleAPI(){
   float voltageC = readVoltage(VOLTAGE_C);
   float currentD = readCurrent(CURRENT_D);
 
+  // Classify the readings returned in this response, not the last timer tick's
+  // (otherwise status is empty before the first tick and up to 2 s stale).
+  float combinedAB = (voltageA + voltageB) / 2.0;
+  String apiStatusAB = classifyVoltage(combinedAB);
+  String apiStatusC = classifyVoltage(voltageC);
+
   String json = "{";
   json += "\"PanelA_Voltage\":" + String(voltageA,2) + ",";
   json += "\"PanelB_Voltage\":" + String(voltageB,2) + ",";
   json += "\"PanelC_Voltage\":" + String(voltageC,2) + ",";
   json += "\"PanelD_Current\":" + String(currentD,2) + ",";
-  json += "\"Status_PanelAB\":\"" + statusAB + "\",";
-  json += "\"Status_PanelC\":\"" + statusC + "\"";
+  json += "\"Status_PanelAB\":\"" + apiStatusAB + "\",";
+  json += "\"Status_PanelC\":\"" + apiStatusC + "\"";
   json += "}";
 
+  // Allow browser dashboards opened from file:// or another origin (index.html) to read /api.
+  server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200,"application/json",json);
 }
 
@@ -124,12 +147,20 @@ void setup() {
   pinMode(RED_AB,OUTPUT); pinMode(YELLOW_AB,OUTPUT); pinMode(GREEN_AB,OUTPUT);
   pinMode(RED_CD,OUTPUT); pinMode(YELLOW_CD,OUTPUT); pinMode(GREEN_CD,OUTPUT);
 
+  // Bounded Wi-Fi wait: boot even when the network is down so the LEDs, Serial log
+  // and (once Wi-Fi returns) /api keep working. Blynk.begin() would block forever.
   WiFi.begin(ssid,pass);
   Serial.print("Connecting WiFi");
-  while(WiFi.status()!=WL_CONNECTED){delay(500); Serial.print(".");}
-  Serial.println("\nWi-Fi Connected! IP: "); Serial.println(WiFi.localIP());
+  unsigned long wifiStart = millis();
+  while(WiFi.status()!=WL_CONNECTED && millis() - wifiStart < WIFI_CONNECT_TIMEOUT_MS){delay(500); Serial.print(".");}
+  if(WiFi.status()==WL_CONNECTED){
+    Serial.println("\nWi-Fi Connected! IP: "); Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("\nWi-Fi unavailable - running offline, will keep retrying");
+  }
 
-  Blynk.begin(BLYNK_AUTH_TOKEN,ssid,pass);
+  Blynk.config(BLYNK_AUTH_TOKEN);
+  if(WiFi.status()==WL_CONNECTED) Blynk.connect(BLYNK_CONNECT_TIMEOUT_MS);
 
   server.on("/api",handleAPI);
   server.begin();
@@ -140,7 +171,11 @@ void setup() {
 
 // ---------------- Loop ----------------
 void loop(){
-  Blynk.run();
+  if(WiFi.status()!=WL_CONNECTED && millis() - lastWifiRetry >= WIFI_RETRY_INTERVAL_MS){
+    lastWifiRetry = millis();
+    WiFi.reconnect();
+  }
+  if(WiFi.status()==WL_CONNECTED) Blynk.run();  // Blynk.run() reconnects to the cloud itself
   timer.run();
   server.handleClient();
 }

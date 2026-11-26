@@ -1,0 +1,6 @@
+name: cloudy_day
+description: Broken clouds (Markov clear-sky index), 60% cloud cover, 5-min persistence.
+start: 2020-05-15T06:00:00
+duration_s: 43200
+weather: {cloud_model: markov, mean_cloud_cover: 0.6, cloud_persistence_s: 300}
+adc_noise_lsb: 2

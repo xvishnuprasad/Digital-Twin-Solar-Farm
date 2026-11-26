@@ -1,0 +1,5 @@
+name: lab_bench
+description: Fixed lamp irradiance and constant temperature; deterministic values for UI tests.
+start: 2020-05-15T12:00:00
+duration_s: 86400
+weather: {cloud_model: clear, irradiance_override: 900, ambient_min_c: 25, ambient_max_c: 25}

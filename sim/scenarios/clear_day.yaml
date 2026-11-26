@@ -1,0 +1,5 @@
+name: clear_day
+description: Cloudless day from 06:00, nominal rig, no faults.
+start: 2020-05-15T06:00:00
+duration_s: 43200
+weather: {cloud_model: clear}

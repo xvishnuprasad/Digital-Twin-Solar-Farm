@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solar Twin Control Panel</title>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --fg:#e2e8f0; --muted:#94a3b8; --acc:#38bdf8;
+          --red:#ef4444; --yellow:#eab308; --green:#22c55e; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.4 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:12px 16px; border-bottom:1px solid #334155; display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; }
+  main { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; padding:16px; }
+  section { background:var(--card); border-radius:10px; padding:14px; }
+  h2 { font-size:14px; margin:0 0 10px; color:var(--acc); text-transform:uppercase; letter-spacing:.05em; }
+  label { display:flex; justify-content:space-between; gap:8px; align-items:center; margin:6px 0; }
+  input[type=range] { width:55%; }
+  select, input[type=number] { background:#0b1220; color:var(--fg); border:1px solid #334155; border-radius:6px; padding:4px; }
+  button { background:var(--acc); color:#0b1220; border:0; border-radius:6px; padding:6px 10px; cursor:pointer; font-weight:600; }
+  pre { background:#0b1220; padding:8px; border-radius:6px; overflow:auto; max-height:220px; margin:0; font-size:12px; }
+  .leds { display:flex; gap:18px; }
+  .grp { text-align:center; color:var(--muted); }
+  .led { width:22px; height:22px; border-radius:50%; display:inline-block; margin:2px; opacity:.15; }
+  .led.on { opacity:1; box-shadow:0 0 10px currentColor; }
+  .r { background:var(--red); color:var(--red); } .y { background:var(--yellow); color:var(--yellow); } .g { background:var(--green); color:var(--green); }
+  .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+<header><h1>Solar Twin Control Panel</h1><span class="muted" id="meta">connecting...</span></header>
+<main>
+  <section>
+    <h2>Environment</h2>
+    <label><span><input type="checkbox" id="ovOn"> Fixed irradiance</span>
+      <input type="range" id="irr" min="0" max="1200" step="10" value="900"><span id="irrV">900</span></label>
+    <h2 style="margin-top:14px">Panels (A B C D)</h2>
+    <div id="panels"></div>
+    <button id="applyFaults">Apply panel faults</button>
+    <button id="clearFaults">Clear all faults</button>
+  </section>
+  <section>
+    <h2>Sensors / ADC</h2>
+    <label>ADC model <select id="adcModel"><option>ideal</option><option>esp32</option></select></label>
+    <label><span><input type="checkbox" id="acsDiv" checked> ACS712 5V&rarr;3.3V divider</span></label>
+    <label>ADC noise (LSB σ) <input type="number" id="noise" min="0" step="1" value="0" style="width:80px"></label>
+    <label>Saturate ADC on <select id="sat"><option value="">none</option><option>A</option><option>B</option><option>C</option><option>D</option></select></label>
+    <button id="applyAdc">Apply</button>
+  </section>
+  <section>
+    <h2>Network</h2>
+    <label>Mode <select id="netMode">
+      <option>ok</option><option>latency</option><option>hang</option><option>http_500</option>
+      <option>malformed_json</option><option>missing_keys</option><option>down</option></select></label>
+    <label>Latency (ms) <input type="number" id="lat" value="500" style="width:80px"></label>
+    <label>CORS header <select id="cors"><option value="null">faithful</option><option value="true">force on</option><option value="false">force off</option></select></label>
+    <button id="applyNet">Apply</button>
+  </section>
+  <section>
+    <h2>Firmware outputs</h2>
+    <div class="leds">
+      <div class="grp">AB<br><span class="led r" id="l14"></span><span class="led y" id="l12"></span><span class="led g" id="l13"></span></div>
+      <div class="grp">CD<br><span class="led r" id="l25"></span><span class="led y" id="l26"></span><span class="led g" id="l27"></span></div>
+    </div>
+    <h2 style="margin-top:12px">GET /api</h2><pre id="api">...</pre>
+    <h2 style="margin-top:12px">Blynk V0–V5</h2><pre id="blynk">...</pre>
+  </section>
+  <section>
+    <h2>Ground truth</h2><pre id="truth">...</pre>
+    <h2 style="margin-top:12px">Serial</h2><pre id="serial">...</pre>
+    <p><a href="/recording" download="recording.jsonl" style="color:var(--acc)">Download recording (JSONL)</a></p>
+  </section>
+</main>
+<script>
+const P = ["A","B","C","D"];
+const panels = document.getElementById("panels");
+for (const p of P) panels.insertAdjacentHTML("beforeend",
+  `<label>${p}: shade <input type="range" id="sh${p}" min="0" max="100" value="0"><span id="sh${p}V">0%</span>
+   <span><input type="checkbox" id="dc${p}"> off</span></label>`);
+for (const p of P) document.getElementById("sh"+p).oninput = e =>
+  document.getElementById("sh"+p+"V").textContent = e.target.value + "%";
+const irr = document.getElementById("irr");
+irr.oninput = () => { document.getElementById("irrV").textContent = irr.value; sendIrr(); };
+document.getElementById("ovOn").onchange = sendIrr;
+
+async function post(patch) {
+  await fetch("/control", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(patch)});
+  refresh();
+}
+function sendIrr() {
+  post({irradiance_override: document.getElementById("ovOn").checked ? Number(irr.value) : null});
+}
+function panelFaults() {
+  const f = [];
+  for (const p of P) {
+    if (document.getElementById("dc"+p).checked) f.push({kind:"disconnect", target:p});
+    const s = Number(document.getElementById("sh"+p).value);
+    if (s > 0) f.push({kind:"shading", target:p, value:s/100});
+  }
+  const sat = document.getElementById("sat").value;
+  if (sat) f.push({kind:"adc_saturation", target:sat});
+  return f;
+}
+document.getElementById("applyFaults").onclick = () => post({faults: panelFaults()});
+document.getElementById("clearFaults").onclick = () => post({faults: []});
+document.getElementById("applyAdc").onclick = () => post({
+  adc_model: document.getElementById("adcModel").value,
+  acs_divider: document.getElementById("acsDiv").checked,
+  adc_noise_lsb: Number(document.getElementById("noise").value),
+  faults: panelFaults()});
+document.getElementById("applyNet").onclick = () => post({network: {
+  mode: document.getElementById("netMode").value,
+  latency_ms: Number(document.getElementById("lat").value),
+  cors: JSON.parse(document.getElementById("cors").value)}});
+
+async function refresh() {
+  try {
+    const s = await (await fetch("/state")).json();
+    document.getElementById("meta").textContent =
+      `${s.scenario.name} · backend=${s.backend} · t=${(s.t_ms/1000).toFixed(1)} s · net=${s.scenario.network.mode}`;
+    for (const [pin, lvl] of Object.entries(s.leds)) {
+      const el = document.getElementById("l"+pin); if (el) el.classList.toggle("on", lvl === 1);
+    }
+    const t = s.truth;
+    document.getElementById("truth").textContent =
+      `G=${t.irradiance_wm2.toFixed(0)} W/m²  Tamb=${t.ambient_c.toFixed(1)} °C  Tmod=${t.module_c.toFixed(1)} °C\n` +
+      `V_A=${t.V_A.toFixed(3)}  V_B=${t.V_B.toFixed(3)}  V_C=${t.V_C.toFixed(3)}  I_D=${t.I_D.toFixed(3)} A\n` +
+      `raw ADC: ${JSON.stringify(s.raws)}`;
+    document.getElementById("serial").textContent = s.serial.join("\n");
+    document.getElementById("blynk").textContent = JSON.stringify(s.blynk, null, 1);
+    const r = await fetch("/api");
+    document.getElementById("api").textContent = `HTTP ${r.status}\n` + await r.text();
+  } catch (e) { document.getElementById("meta").textContent = "error: " + e; }
+}
+refresh(); setInterval(refresh, 1000);
+</script>
+</body>
+</html>
